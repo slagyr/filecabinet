@@ -1,5 +1,6 @@
 pom.xml
 lib/*jar
+filecabinet*.jar
 /lib/
 /classes/
 .lein-deps-sum

@@ -18,6 +18,7 @@ public class Templater
   private String sourceRoot;
   private Map<String, String> tokens = new HashMap<String, String>();
   private boolean destinationRootVerified;
+  private boolean forceful;
 
   public Templater(String destination, String source)
   {
@@ -32,14 +33,29 @@ public class Templater
     this.logger = logger;
   }
 
-  public String getDestinationRoot()
+  public void setForceful(boolean forceful)
   {
-    return destinationRoot;
+    this.forceful = forceful;
+  }
+
+  public boolean isForceful()
+  {
+    return forceful;
   }
 
   public void setFs(FileSystem fs)
   {
     this.fs = fs;
+  }
+
+  public String getDestinationRoot()
+  {
+    return destinationRoot;
+  }
+
+  public String getSourceRoot()
+  {
+    return sourceRoot;
   }
 
   public void directory(String dir)
@@ -64,11 +80,6 @@ public class Templater
     }
   }
 
-  public String getSourceRoot()
-  {
-    return sourceRoot;
-  }
-
   public void file(String filePath, String template)
   {
     directory(fs.parentPath(filePath));
@@ -76,7 +87,13 @@ public class Templater
 
     final String destination = fs.join(destinationRoot, filePath);
     if(fs.exists(destination))
-      fileExists(filePath);
+      if(isForceful())
+      {
+        overwritingFile(filePath);
+        fs.createTextFile(destination, replaceTokens(templateContent));
+      }
+      else
+        fileExists(filePath);
     else
     {
       creatingFile(filePath);
@@ -112,6 +129,11 @@ public class Templater
   private void fileExists(String filePath)
   {
     logger.say("\tfile already exists: " + filePath);
+  }
+
+  private void overwritingFile(String filePath)
+  {
+    logger.say("\toverwriting file:    " + filePath);
   }
 
   private void creatingDirectory(String dir)

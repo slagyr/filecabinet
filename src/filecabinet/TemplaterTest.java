@@ -8,7 +8,6 @@ import org.junit.Test;
 
 import java.util.LinkedList;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 
@@ -78,6 +77,22 @@ public class TemplaterTest
 
     assertEquals("original content", fileSystem.readTextFile("destination/file.txt"));
     assertEquals("\tfile already exists: file.txt", log.messages.get(0));
+  }
+
+  @Test
+  public void existingFilesCanBeForcedUpon() throws Exception
+  {
+    assertEquals(false, templater.isForceful());
+    templater.setForceful(true);
+    assertEquals(true, templater.isForceful());
+
+    fileSystem.createTextFile("source/1.template", "template content");
+    fileSystem.createTextFile("destination/file.txt", "original content");
+
+    templater.file("file.txt", "1.template");
+
+    assertEquals("template content", fileSystem.readTextFile("destination/file.txt"));
+    assertEquals("\toverwriting file:    file.txt", log.messages.get(0));
   }
   
   @Test
