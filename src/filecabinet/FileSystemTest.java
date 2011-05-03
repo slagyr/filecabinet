@@ -1,4 +1,4 @@
-package file_cabinet;
+package filecabinet;
 
 import org.junit.After;
 import org.junit.Before;
