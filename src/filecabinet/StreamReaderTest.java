@@ -167,6 +167,26 @@ public class StreamReaderTest
 	}
 
   @Test
+	public void copyBytes() throws Exception
+	{
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		writeToPipe("some bytes");
+    output.close();
+		reader.copyBytes(outputStream);
+		assertEquals("some bytes", outputStream.toString());
+	}
+
+  @Test
+	public void copyNBytes() throws Exception
+	{
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		writeToPipe("some bytes");
+    output.close();
+		reader.copyBytes(4, outputStream);
+		assertEquals("some", outputStream.toString());
+	}
+
+  @Test
 	public void copyBytesUpTo() throws Exception
 	{
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

@@ -3,6 +3,9 @@
 
 package filecabinet;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -11,6 +14,9 @@ import java.util.regex.Pattern;
 public class Templater
 {
   private static final Pattern TOKEN_PATTERN = Pattern.compile("!-(\\w+)-!");
+
+  private final FileHandler textFileHandler = new TextFileHandler();
+  private final FileHandler binaryFileHandler = new BinaryFileHandler();
 
   private TemplaterLogger logger;
   private FileSystem fs;
@@ -80,24 +86,34 @@ public class Templater
     }
   }
 
-  public void file(String filePath, String template)
+  public void file(String filePath, String sourcePath)
+  {
+    doFile(filePath, sourcePath, textFileHandler);
+  }
+
+  public void binary(String filePath, String sourcePath)
+  {
+    doFile(filePath, sourcePath, binaryFileHandler);
+  }
+
+  private void doFile(String filePath, String sourcePath, FileHandler handler)
   {
     directory(fs.parentPath(filePath));
-    final String templateContent = fs.readTextFile(fs.join(sourceRoot, template));
-
+    final String source = fs.join(sourceRoot, sourcePath);
     final String destination = fs.join(destinationRoot, filePath);
+
     if(fs.exists(destination))
       if(isForceful())
       {
         overwritingFile(filePath);
-        fs.createTextFile(destination, replaceTokens(templateContent));
+        handler.handle(destination, source);
       }
       else
         fileExists(filePath);
     else
     {
       creatingFile(filePath);
-      fs.createTextFile(destination, replaceTokens(templateContent));
+      handler.handle(destination, source);
     }
   }
 
@@ -146,6 +162,39 @@ public class Templater
     public void say(String message)
     {
       System.out.println(message);
+    }
+  }
+
+  private static interface FileHandler
+  {
+    void handle(String destination, String source);
+  }
+
+  private class TextFileHandler implements FileHandler
+  {
+    public void handle(String destination, String source)
+    {
+      final String templateContent = fs.readTextFile(source);
+      fs.createTextFile(destination, replaceTokens(templateContent));
+    }
+  }
+
+  private class BinaryFileHandler implements FileHandler
+  {
+    public void handle(String destination, String source)
+    {
+      final InputStream inputStream = fs.inputStream(source);
+      final OutputStream outputStream = fs.outputStream(destination);
+      new StreamReader(inputStream).copyBytes(outputStream);
+      try
+      {
+        inputStream.close();
+        outputStream.close();
+      }
+      catch(IOException e)
+      {
+        throw new RuntimeException(e);
+      }
     }
   }
 }

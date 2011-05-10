@@ -1,4 +1,4 @@
-(defproject filecabinet "1.0.1"
+(defproject filecabinet "1.0.2"
   :description "Library to work with files"
   :dependencies [[org.clojure/clojure "1.2.1"]]
   :dev-dependencies [[junit "4.8.2"]

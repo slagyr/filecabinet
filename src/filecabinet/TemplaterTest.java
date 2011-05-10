@@ -107,6 +107,18 @@ public class TemplaterTest
   }
 
   @Test
+  public void creatingBinary() throws Exception
+  {
+    templater.addToken("MY_TAG", "wicked");
+    fileSystem.createTextFile("source/binary", "!-MY_TAG-!");
+
+    templater.binary("file.bin", "binary");
+
+    assertEquals("!-MY_TAG-!", fileSystem.readTextFile("destination/file.bin"));
+    assertEquals("\tcreating file:       file.bin", log.messages.get(0));
+  }
+
+  @Test
   public void creatingFileWithMultipleTokens() throws Exception
   {
     fileSystem.createTextFile("source/1.template", "!-TOKEN0-! !-TOKEN1-! !-TOKEN2-!");

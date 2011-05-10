@@ -77,6 +77,12 @@ public class StreamReader
 		return preformRead();
 	}
 
+	public void copyBytes(OutputStream output)
+	{
+		state = READALL_STATE;
+		performCopy(output);
+	}
+
 	public void copyBytes(int count, OutputStream output)
 	{
 		readGoal = count;
