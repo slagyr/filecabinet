@@ -12,6 +12,7 @@ import java.util.zip.ZipFile;
 public class FileSystem
 {
   protected static FileSystem instance = new FileSystem();
+
   public static FileSystem instance()
   {
     return instance;
@@ -384,13 +385,16 @@ public class FileSystem
 
     public boolean isDirectory()
     {
-      if(pathToFile.endsWith("/"))
-        return zipEntry().isDirectory();
-      else
+      pathToFile = pathToFile.endsWith("/") ? pathToFile : pathToFile + "/";
+      final Enumeration<? extends ZipEntry> entries = zip().entries();
+      while(entries.hasMoreElements())
       {
-        final ZipEntry entry = zip().getEntry(pathToFile + "/");
-        return entry != null && entry.isDirectory();
+        ZipEntry entry = entries.nextElement();
+        final String entryName = entry.getName();
+        if(entryName.startsWith(pathToFile))
+          return true;
       }
+      return false;
     }
 
     public OutputStream outputStream()
