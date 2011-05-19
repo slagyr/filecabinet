@@ -4,6 +4,7 @@
 package filecabinet;
 
 import java.io.*;
+import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.zip.ZipEntry;
@@ -18,12 +19,7 @@ public class FileSystem
     return instance;
   }
 
-  protected String separator;
-
-  public FileSystem()
-  {
-    separator = System.getProperty("file.separator");
-  }
+  protected String separator = "/";
 
   public void createDirectory(String path)
   {
@@ -95,29 +91,20 @@ public class FileSystem
 
   // UTILITY  METHODS --------------------------------------------------------------------------------------------------
 
-  public String separator()
-  {
-    return separator;
-  }
-
-  public void setSeparator(String separator)
-  {
-    this.separator = separator;
-  }
-
   public String homeDir()
   {
-    return System.getProperty("user.home");
+    return forwardSlashOnly(System.getProperty("user.home"));
   }
 
   public String workingDir()
   {
-    return System.getProperty("user.dir");
+    return forwardSlashOnly(System.getProperty("user.dir"));
   }
 
   public String join(String... parts)
   {
-    return removeDuplicateSeparators(StringUtil.join(separator, (Object[]) parts));
+    final String join = StringUtil.join(separator, (Object[]) parts);
+    return removeDuplicateSeparators(forwardSlashOnly(join));
   }
 
   public String baseName(String path)
@@ -144,28 +131,18 @@ public class FileSystem
 
   public String parentPath(String path)
   {
-    String separator = separatorForPath(path);
+    path = forwardSlashOnly(path);
     final int lastSeparator = path.lastIndexOf(separator);
     if(lastSeparator == -1)
       return ".";
     return path.substring(0, lastSeparator);
   }
 
-  private String separatorForPath(String path)
-  {
-    return isUrl(path) ? "/" : this.separator;
-  }
-
-  public boolean isUrl(String path)
-  {
-    return path.startsWith("jar:") || path.startsWith("file:");
-  }
-
   public String filename(String path)
   {
-    if("/".equals(path))
+    path = forwardSlashOnly(path);
+    if("/".equals(path) || path.matches("[A-Z]\\://"))
       return path;
-    String separator = separatorForPath(path);
     if(path.endsWith(separator))
       path = path.substring(0, path.length() - separator.length());
     final int lastSeparator = path.lastIndexOf(separator);
@@ -223,8 +200,38 @@ public class FileSystem
 
   private String removeDuplicateSeparators(String path)
   {
-    String separator = separatorForPath(path);
     return path.replace(separator + separator, separator);
+  }
+
+  private static String forwardSlashOnly(String path)
+  {
+    return path.replace("\\", "/");
+  }
+
+  public static String decode(String path)
+  {
+    try
+    {
+      return URLDecoder.decode(path, "UTF-8");
+    }
+    catch(Exception e)
+    {
+      return path;
+    }
+  }
+
+  public static String encode(String path)
+  {
+    try
+    {
+      return path.
+        replace(" ", "%20").
+        replace("+", "%2B");
+    }
+    catch(Exception e)
+    {
+      return path;
+    }
   }
 
   // WHERE THE MAGIC HAPPENS -------------------------------------------------------------------------------------------
@@ -271,7 +278,7 @@ public class FileSystem
     {
       this.path = path;
       if(path.startsWith("file:"))
-        this.path = path.substring(5);
+        this.path = decode(path.substring(5));
     }
 
     public File file()
@@ -325,7 +332,7 @@ public class FileSystem
     {
       try
       {
-        return "file:" + file().getCanonicalPath();
+        return encode("file:" + file().getCanonicalPath());
       }
       catch(IOException e)
       {
@@ -362,12 +369,13 @@ public class FileSystem
     private ZipPath(String path, FileSystem fs)
     {
       this.fs = fs;
+      path = forwardSlashOnly(path);
       final int bangIndex = path.indexOf("!");
       if(bangIndex == -1)
         throw new RuntimeException("Invalid Jar file path: " + path);
 
-      pathToZip = fs.resolve(path.substring(4, bangIndex));
-      pathToFile = path.substring(bangIndex + 2);
+      pathToZip = fs.resolve(decode(path.substring(4, bangIndex)));
+      pathToFile = decode(path.substring(bangIndex + 2));
     }
 
     private ZipFile zip()
@@ -434,7 +442,7 @@ public class FileSystem
 
     public String getAbsolutePath()
     {
-      return "jar:" + pathToZip.getAbsolutePath() + "!/" + pathToFile;
+      return "jar:" + pathToZip.getAbsolutePath() + "!/" + encode(pathToFile);
     }
 
     public void delete()

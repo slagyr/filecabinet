@@ -75,20 +75,12 @@ public class FileSystemTest
   public void filename() throws Exception
   {
     assertEquals("/", fs.filename("/"));
-    assertEquals("C:\\", fs.filename("C:\\"));
+    assertEquals("C://", fs.filename("C://"));
     assertEquals("one", fs.filename("/one"));
     assertEquals("two", fs.filename("/one/two"));
     assertEquals("two", fs.filename("one/two"));
     assertEquals("two.txt", fs.filename("one/two.txt"));
     assertEquals("two", fs.filename("one/two/"));
-  }
-
-  @Test
-  public void parentPathOfJarFileOnWindows() throws Exception
-  {
-    fs.setSeparator("\\");
-    assertEquals("jar:file:/C:/Documents%20and%20Settings/Micah/.m2/repository/gaeshi/kuzushi/0.5.1/kuzushi-0.5.1.jar!/gaeshi/kuzushi/templates",
-      fs.parentPath("jar:file:/C:/Documents%20and%20Settings/Micah/.m2/repository/gaeshi/kuzushi/0.5.1/kuzushi-0.5.1.jar!/gaeshi/kuzushi/templates/marker.txt"));
   }
 
   @Test
@@ -106,11 +98,11 @@ public class FileSystemTest
   public void canTellFileExistsUsingFileProtocol() throws Exception
   {
     withTmpDir();
-    assertEquals(false, fs.exists("file:" + tmpDir + "/file.txt"));
+    assertEquals(false, fs.exists("file:" + FileSystem.encode(tmpDir + "/file.txt")));
 
     fs.createTextFile(tmpDir + "/file.txt", "some text");
 
-    assertEquals(true, fs.exists("file:" + tmpDir + "/file.txt"));
+    assertEquals(true, fs.exists("file:" + FileSystem.encode(tmpDir + "/file.txt")));
   }
 
   @Test
@@ -135,7 +127,7 @@ public class FileSystemTest
   public void createDirectoryWithFileProtocol() throws Exception
   {
     withTmpDir();
-    final String dir2 = fs.join("file:" + tmpDir, "newDir2");
+    final String dir2 = fs.join("file:" + FileSystem.encode(tmpDir), "newDir2");
     fs.createDirectory(dir2);
     assertEquals(true, fs.exists(dir2));
     assertEquals(true, fs.isDirectory(dir2));
@@ -165,7 +157,7 @@ public class FileSystemTest
   public void canReadAndWriteUsingFileProtocol() throws Exception
   {
     withTmpDir();
-    final String path = fs.join("file:" + tmpDir, "file.txt");
+    final String path = fs.join("file:" + FileSystem.encode(tmpDir), "file.txt");
 
     fs.createTextFile(path, "I'm looking for a safe house.");
 
@@ -191,9 +183,9 @@ public class FileSystemTest
   public void fileListingWithFileProtocol() throws Exception
   {
     withTmpDir();
-    assertArrayEquals(new String[0], fs.fileListing("file:" + tmpDir));
-    fs.createTextFile(fs.join("file:" + tmpDir, "file.txt"), "blah");
-    assertArrayEquals(new String[]{"file.txt"}, fs.fileListing("file:" + tmpDir));
+    assertArrayEquals(new String[0], fs.fileListing("file:" + FileSystem.encode(tmpDir)));
+    fs.createTextFile(fs.join("file:" + FileSystem.encode(tmpDir), "file.txt"), "blah");
+    assertArrayEquals(new String[]{"file.txt"}, fs.fileListing("file:" + FileSystem.encode(tmpDir)));
   }
 
   @Test
@@ -217,7 +209,7 @@ public class FileSystemTest
   public void modificationTimeWithFileProtocol() throws Exception
   {
     withTmpDir();
-    final String path = fs.join("file:" + tmpDir, "file.txt");
+    final String path = fs.join("file:" + FileSystem.encode(tmpDir), "file.txt");
     fs.createTextFile(path, "blah");
 
     final long millisSinceModified = System.currentTimeMillis() - fs.modificationTime(path);
@@ -237,7 +229,7 @@ public class FileSystemTest
   public void absolutePathWithFileProtocol() throws Exception
   {
     withTmpDir();
-    final String expected = "file:" + new File(tmpDir).getCanonicalPath();
+    final String expected = "file:" + FileSystem.encode(new File(tmpDir).getCanonicalPath());
     assertEquals(expected, fs.absolutePath(tmpDir));
   }
 
@@ -248,5 +240,27 @@ public class FileSystemTest
     String expected = "jar:" + fs.absolutePath(dataDirPath("calc.jar")) + "!/calculator.java/stages.xml";
 
     assertEquals(expected, result);
+  }
+
+  @Test
+  public void decodesURLCharactersInJarPath() throws Exception
+  {
+    jarPath = jarPath.replace("calc", "c%61lc");
+    assertEquals(true, fs.exists(jarPath + "/calculator.java/stages.xml"));
+    assertEquals(false, fs.isDirectory(jarPath + "/calculator.java/stages.%78ml"));
+  }
+
+  @Test
+  public void decodesURLCharsInFilePath() throws Exception
+  {
+    withTmpDir();
+    final String tmpDirURL = "file:" + FileSystem.encode(new File(tmpDir).getCanonicalPath());
+    String decodedPath = fs.join(tmpDirURL, "abc.txt");
+    String encodedPath = fs.join(tmpDirURL, "%61%62%63.txt");
+
+    assertEquals(false, fs.exists(encodedPath));
+    fs.createTextFile(decodedPath, "blah");
+    assertEquals(true, fs.exists(encodedPath));
+    assertEquals("blah", fs.readTextFile(encodedPath));
   }
 }
