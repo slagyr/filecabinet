@@ -100,6 +100,11 @@ public class FileSystem
     return separator;
   }
 
+  public void setSeparator(String separator)
+  {
+    this.separator = separator;
+  }
+
   public String homeDir()
   {
     return System.getProperty("user.home");
@@ -112,7 +117,7 @@ public class FileSystem
 
   public String join(String... parts)
   {
-    return removeDuplicateSeprators(StringUtil.join(separator, (Object[]) parts));
+    return removeDuplicateSeparators(StringUtil.join(separator, (Object[]) parts));
   }
 
   public String baseName(String path)
@@ -139,16 +144,28 @@ public class FileSystem
 
   public String parentPath(String path)
   {
+    String separator = separatorForPath(path);
     final int lastSeparator = path.lastIndexOf(separator);
     if(lastSeparator == -1)
       return ".";
     return path.substring(0, lastSeparator);
   }
 
+  private String separatorForPath(String path)
+  {
+    return isUrl(path) ? "/" : this.separator;
+  }
+
+  public boolean isUrl(String path)
+  {
+    return path.startsWith("jar:") || path.startsWith("file:");
+  }
+
   public String filename(String path)
   {
     if("/".equals(path))
       return path;
+    String separator = separatorForPath(path);
     if(path.endsWith(separator))
       path = path.substring(0, path.length() - separator.length());
     final int lastSeparator = path.lastIndexOf(separator);
@@ -204,8 +221,9 @@ public class FileSystem
     }
   }
 
-  private String removeDuplicateSeprators(String path)
+  private String removeDuplicateSeparators(String path)
   {
+    String separator = separatorForPath(path);
     return path.replace(separator + separator, separator);
   }
 

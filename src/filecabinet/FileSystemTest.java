@@ -84,6 +84,14 @@ public class FileSystemTest
   }
 
   @Test
+  public void parentPathOfJarFileOnWindows() throws Exception
+  {
+    fs.setSeparator("\\");
+    assertEquals("jar:file:/C:/Documents%20and%20Settings/Micah/.m2/repository/gaeshi/kuzushi/0.5.1/kuzushi-0.5.1.jar!/gaeshi/kuzushi/templates",
+      fs.parentPath("jar:file:/C:/Documents%20and%20Settings/Micah/.m2/repository/gaeshi/kuzushi/0.5.1/kuzushi-0.5.1.jar!/gaeshi/kuzushi/templates/marker.txt"));
+  }
+
+  @Test
   public void canTellFilesExist() throws Exception
   {
     withTmpDir();
